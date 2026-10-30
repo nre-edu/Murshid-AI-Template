@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>دليل — مساعدك المعرفي</title>
+  <meta name="description" content="مساعدك المعرفي للبحث في الأدلة المعتمدة، مع إظهار المصادر التي استندت إليها الإجابة.">
+  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%23FF6B35'/><path d='M30 70 L30 30 L50 45 L70 30 L70 70' fill='none' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="main-canvas">
+
+      <!-- 1. Header (رأس بسيط) -->
+      <header class="site-header" role="banner">
+        <a href="/" class="brand-logo" aria-label="الرئيسية - دليل">
+          <div class="brand-logo-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              <path d="M12 6v6"/>
+              <path d="M15 9h-6"/>
+            </svg>
+          </div>
+          <div>
+            <span class="brand-logo-text">دليل</span>
+            <div class="brand-tagline">مساعدك المعرفي</div>
+          </div>
+        </a>
+
+        <nav class="header-nav" role="navigation" aria-label="التنقل الرئيسي">
+          <a href="#chat" class="nav-link" id="navChatLink">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>المحادثة</span>
+          </a>
+          <button type="button" class="nav-link" id="openSourcesBtn" style="background:none; border:none; cursor:pointer;" aria-label="فتح لوحة المصادر">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <span>المصادر المعتمدة</span>
+          </button>
+          <a href="#how-it-works" class="nav-link">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span>كيف يعمل</span>
+          </a>
+          
+          <button type="button" class="btn-secondary" id="adminTriggerBtn" title="إضافة مفتاح الذكاء" aria-label="إضافة مفتاح الذكاء — تعليمات الإعداد">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+            </svg>
+            <span id="adminBtnLabel">إضافة مفتاح الذكاء</span>
+          </button>
+        </nav>
+      </header>
+
+      <!-- 2. Hero / Intro (مقدمة قصيرة) -->
+      <section class="hero-section" id="heroSection" aria-labelledby="heroTitle">
+        <div class="hero-content">
+          <h1 class="hero-title" id="heroTitle">
+            اسأل أدلتك، واحصل على <span class="highlight-orange">إجابة موثّقة</span>
+          </h1>
+          <p class="hero-description">
+            مساعدك المعرفي للبحث في الأدلة المعتمدة، مع إظهار المصادر التي استندت إليها الإجابة.
+          </p>
+          <div class="hero-cta-group">
+            <button type="button" class="btn-primary-orange" id="startChatBtn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+                <polyline points="12 5 19 12 12 19"/>
+              </svg>
+              <span>ابدأ المحادثة</span>
+            </button>
+            <div class="status-pill incomplete" id="heroStatusPill">
+              <span class="status-dot incomplete" id="heroStatusDot"></span>
+              <span id="heroStatusText">جاري فحص الأدلة المعتمدة...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-illustration-box" aria-hidden="true">
+          <img src="/static/assets/daleel-hero-3d.svg" alt="رسم تعبيري لتوثيق المعرفة والبحث في الأدلة" width="440" height="340" style="max-width: 100%; height: auto;">
+        </div>
+      </section>
+
+      <!-- Compact Top Banner (Shown after first message) -->
+      <div class="compact-top-banner" id="compactBanner" aria-hidden="true">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <span style="font-weight:700; color:var(--color-charcoal-dark); font-size:0.9rem;">دليل: اسأل أدلتك المعتمدة واحصل على إجابة موثّقة</span>
+        </div>
+        <button type="button" class="btn-icon-sm" id="expandHeroBtn" title="عرض المقدمة">
+          <span>عرض التفاصيل</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+
+      <!-- 3. مساحة المحادثة — العنصر الرئيسي -->
+      <main class="chat-container" id="chat">
+        <div class="chat-card" role="region" aria-label="منطقة المحادثة مع دليل">
+          
+          <!-- Card Header -->
+          <div class="chat-card-header">
+            <div class="assistant-info">
+              <div class="assistant-avatar" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+              </div>
+              <div>
+                <div class="assistant-name">دليل — المساعد المعرفي</div>
+                <div class="status-pill incomplete" id="chatCardStatusPill" style="padding:0.15rem 0.6rem; font-size:0.75rem; margin-top:2px;">
+                  <span class="status-dot incomplete" id="chatCardStatusDot"></span>
+                  <span id="chatCardStatusText">جاري فحص الأدلة المحلية...</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-header-actions">
+              <button type="button" class="btn-secondary" id="newChatBtn" title="بدء محادثة جديدة" style="padding:0.4rem 0.85rem; font-size:0.82rem; min-height:36px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+                <span>محادثة جديدة</span>
+              </button>
+              <button type="button" class="btn-secondary" id="toggleSourcesInChatBtn" title="عرض لوحة المصادر" style="padding:0.4rem 0.85rem; font-size:0.82rem; min-height:36px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+                <span>الأدلة (<span id="chatSourcesCount">0</span>)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Messages Area -->
+          <div class="chat-messages" id="messagesContainer" role="log" aria-live="polite">
+            
+            <!-- Empty State with Suggestion Chips -->
+            <div class="empty-chat-state" id="emptyState">
+              <div class="empty-icon" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                </svg>
+              </div>
+              <h2 class="empty-title">مرحباً بك في «دليل»</h2>
+              <p class="empty-desc">
+                اطرح استفسارك، وسأبحث حصرياً داخل الأدلة واللوائح المعتمدة محلياً لأقدّم لك إجابة دقيقة وموثّقة مع مقتطفات المصادر والصفحات.
+              </p>
+
+              <div class="suggestions-title">اقتراحات لبدء المحادثة (عيّنة DEMO):</div>
+              <div class="suggestions-chips" role="group" aria-label="أسئلة مقترحة">
+                <button type="button" class="suggestion-chip" data-query="ما الذكاء الاصطناعي؟ اذكر تطبيقين وردا في الدليل.">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <span>ما الذكاء الاصطناعي؟</span>
+                </button>
+                <button type="button" class="suggestion-chip" data-query="ما الفرق بين تعلم الآلة والتعلم العميق؟">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <span>تعلم الآلة والتعلم العميق</span>
+                </button>
+                <button type="button" class="suggestion-chip" data-query="كيف يمكن استخدام الذكاء الاصطناعي لتوقع أعطال المعدات؟">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  <span>الصيانة التنبؤية</span>
+                </button>
+                <button type="button" class="suggestion-chip" id="demoAnswerMapBtn" data-demo-map="1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7v4M12 11l-6 6M12 11l6 6"/></svg>
+                  <span>معاينة خريطة الإجابة (عينة)</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Thinking / Streaming Box -->
+          <div id="thinkingIndicator" class="thinking-box" style="display:none;" aria-live="assertive">
+            <span class="dot-pulse"><span></span><span></span><span></span></span>
+            <span id="thinkingText">جاري البحث في الأدلة المعتمدة واسترجاع المقاطع...</span>
+          </div>
+
+          <!-- Pinned Input Bar -->
+          <div class="chat-input-bar">
+            <form class="input-form" id="chatForm">
+              <textarea 
+                id="queryInput" 
+                class="chat-textarea" 
+                placeholder="اكتب استفسارك هنا حول الأدلة المعتمدة... (Enter للإرسال، Shift+Enter لسطر جديد)" 
+                rows="1"
+                aria-label="مربع السؤال"></textarea>
+              
+              <div class="input-actions">
+                <button type="button" class="btn-stop" id="stopGenerationBtn" aria-label="إيقاف الاستجابة">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                  </svg>
+                  <span>إيقاف</span>
+                </button>
+
+                <button type="submit" class="btn-send" id="sendBtn" title="إرسال السؤال" aria-label="إرسال السؤال">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </main>
+
+      <!-- 4. Supporting Section («كيف يعمل دليل؟») -->
+      <section class="how-it-works-section" id="how-it-works" aria-labelledby="howItWorksTitle">
+        <h2 class="section-title" id="howItWorksTitle">كيف يعمل دليل؟</h2>
+        <div class="steps-grid">
+          
+          <div class="step-card">
+            <div class="step-number" aria-hidden="true">١</div>
+            <h3 class="step-heading">اكتب سؤالك</h3>
+            <p class="step-desc">
+              اطرح استفسارك بأسلوبك الطبيعي حول السياسات أو الإجراءات أو المحتوى المعرفي المعتمد.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number" aria-hidden="true">٢</div>
+            <h3 class="step-heading">يبحث في الأدلة</h3>
+            <p class="step-desc">
+              يبحث المحرك المحلي الذكي داخل أدلة Markdown المعتمدة فقط، ويسترجع المقاطع الأكثر صلة.
+            </p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number" aria-hidden="true">٣</div>
+            <h3 class="step-heading">يعرض الإجابة ومصادرها</h3>
+            <p class="step-desc">
+              يقدم إجابة موثّقة، ويوفر بطاقات استشهاد تتيح لك «عرض المصدر» والنص الكامل بنقرة واحدة داخل التطبيق.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 5. Footer -->
+      <footer class="site-footer" role="contentinfo">
+        <div class="footer-brand">دليل — المعرفة من مصادرها</div>
+        <p class="footer-disclaimer">
+          قد تخطئ الإجابات الآلية؛ راجع المصادر عند الحاجة.
+        </p>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- Sources Drawer (لوحة المصادر المعتمدة) -->
+  <div class="drawer-backdrop" id="sourcesDrawerBackdrop"></div>
+  <aside class="sources-drawer" id="sourcesDrawer" aria-labelledby="drawerTitle" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <div class="drawer-title" id="drawerTitle">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <span>الأدلة المعتمدة المحلية</span>
+      </div>
+      <button type="button" class="btn-close" id="closeDrawerBtn" aria-label="إغلاق لوحة المصادر">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="drawer-body">
+      <!-- Info Card -->
+      <div class="folder-info-card">
+        <div class="folder-info-row">
+          <span style="font-weight:700; color:var(--color-charcoal-dark);">نوع المصدر:</span>
+          <span style="font-weight:600; color:#065F46;">أدلة Markdown محلية موثّقة</span>
+        </div>
+        <div class="folder-info-row">
+          <span>مكان الحفظ:</span>
+          <span class="folder-id-code">knowledge/ (محمي بالخادم)</span>
+        </div>
+        <div class="folder-info-row">
+          <span>حالة الفهرس المحلي:</span>
+          <span class="status-pill connected" id="drawerStatusPill">
+            <span class="status-dot connected" id="drawerStatusDot"></span>
+            <span id="drawerStatusLabel">مفهرس وجاهز</span>
+          </span>
+        </div>
+        <div class="folder-info-row">
+          <span>عدد الأدلة المعتمدة:</span>
+          <strong id="drawerFilesCount">7 أدلة</strong>
+        </div>
+        <div class="folder-info-row">
+          <span>إجمالي المقاطع المفهرسة:</span>
+          <strong id="drawerChunksCount">0 مقطع</strong>
+        </div>
+        <div class="folder-info-row">
+          <span>آخر تحديث للفهرس:</span>
+          <span id="drawerLastSync" style="color:var(--color-charcoal-muted);">-</span>
+        </div>
+      </div>
+
+      <!-- File List -->
+      <div>
+        <div style="font-weight:700; font-size:0.95rem; color:var(--color-charcoal-dark); margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+          <span>قائمة الأدلة المعتمدة</span>
+          <span style="font-size:0.8rem; font-weight:normal; color:var(--color-charcoal-muted);" id="drawerFilesCountBadge">0 دليل</span>
+        </div>
+        <div id="drawerFilesList" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- In-App Source Viewer Modal (نافذة عرض المصدر داخل التطبيق) -->
+  <div class="modal-overlay" id="sourceViewerModal" role="dialog" aria-modal="true" aria-labelledby="sourceViewerTitle">
+    <div class="modal-card" style="max-width: 680px; max-height: 85vh; display:flex; flex-direction:column;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="sourceViewerTitle">عرض المصدر المعتمد</div>
+          <div id="sourceViewerSubtitle" style="font-size:0.8rem; color:var(--color-charcoal-muted); margin-top:2px;">-</div>
+        </div>
+        <button type="button" class="btn-close" id="closeSourceViewerBtn" aria-label="إغلاق نافذة المصدر">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body" style="flex:1; overflow-y:auto; line-height:1.75; font-size:0.95rem;">
+        <div id="sourceViewerMeta" style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:0.75rem; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.85rem; display:flex; flex-wrap:wrap; gap:1rem;"></div>
+        <div id="sourceViewerContent" style="white-space: pre-wrap; word-break: break-word; color:var(--color-charcoal-dark);"></div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <span style="font-size:0.8rem; color:var(--color-charcoal-muted);">مصدر معتمد مسترجع من الأدلة المحلية</span>
+        <button type="button" class="btn-secondary" id="copySourceTextBtn">نسخ نص المصدر</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Setup Modal: إضافة مفتاح الذكاء (إرشادات فقط — لا حفظ أسرار من الواجهة) -->
+  <div class="modal-overlay" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title" id="adminModalTitle">إضافة مفتاح الذكاء</div>
+        <button type="button" class="btn-close" id="closeAdminModalBtn" aria-label="إغلاق نافذة الإعداد">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body" id="setupInstructionsView">
+        <div id="geminiKeyStatusHint" class="form-help" style="margin-bottom:0.85rem; font-weight:700;"></div>
+
+        <div style="background:#FFF7ED; border:1px solid #FED7AA; border-radius:0.75rem; padding:0.85rem 1rem; font-size:0.88rem; color:#9A3412; line-height:1.7; margin-bottom:1rem;">
+          لا تُدخل مفتاح API في هذه الصفحة، ولا يُحفظ في المتصفح. المفتاح يخص خادمك فقط عبر متغيرات البيئة.
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">محليًا</label>
+          <ol style="padding-right:1.2rem; margin:0; font-size:0.88rem; line-height:1.75; color:#0F172A;">
+            <li>انسخ <code>.env.example</code> إلى <code>.env</code>.</li>
+            <li>ضع مفتاحك في <code>GEMINI_API_KEY=</code> (بدون مسافات).</li>
+            <li>اختياري: <code>GEMINI_MODEL=gemini-3.5-flash-lite</code>.</li>
+            <li>أعد تشغيل الخادم: <code>python run.py</code>.</li>
+          </ol>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">على Vercel</label>
+          <ol style="padding-right:1.2rem; margin:0; font-size:0.88rem; line-height:1.75; color:#0F172A;">
+            <li>Project → Settings → Environment Variables.</li>
+            <li>أضف <code>GEMINI_API_KEY</code> كمتغير خادم (بدون بادئة <code>NEXT_PUBLIC_</code> أو <code>VITE_</code>).</li>
+            <li>اختياري: <code>GEMINI_MODEL</code>.</li>
+            <li>أعد النشر (Redeploy) بعد الحفظ.</li>
+          </ol>
+        </div>
+
+        <div class="form-group" style="padding-top:0.35rem; border-top:1px dashed #E2E8F0;">
+          <label class="form-label">استبدال الأدلة التجريبية</label>
+          <div style="background:#F1F5F9; border-radius:0.75rem; padding:0.75rem 0.9rem; font-size:0.85rem; color:#0F172A; line-height:1.7;">
+            لاستبدال الأدلة التجريبية، احذفها وضع ملفاتك داخل مجلد <code>Knowledge</code> في جذر المشروع، ثم أعد بناء المشروع ونشره وفق التعليمات
+            (<code>python scripts/build_knowledge_index.py</code> ثم إعادة النشر على Vercel.
+            لا ترفع أدلتك الخاصة إلى مستودع عام.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

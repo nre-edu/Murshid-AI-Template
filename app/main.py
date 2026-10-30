@@ -223,7 +223,7 @@ def get_demo_answer_map():
     return {
         "success": True,
         "isDemo": True,
-        "query": "متى تفتح فترة التسجيل، وما نصائح الاختبارات، وما أبرز خدمات الطلاب؟",
+        "query": "ما الذكاء الاصطناعي؟ وما الفرق بين تعلم الآلة والتعلم العميق؟ وما أبرز التطبيقات العملية؟",
         "answer_text": DEMO_ANSWER_TEXT,
         "answer_map": validated,
         "badge": "عينة توضيحية",

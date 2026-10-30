@@ -845,7 +845,7 @@ textarea:focus-visible {
   box-shadow: none;
 }
 
-/* Supporting Section: "كيف يعمل دليل؟" (Peach Background) */
+/* Supporting Section: "كيف يعمل مرشد؟" (Peach Background) */
 .how-it-works-section {
   margin: 1.5rem 2rem 2.5rem 2rem;
   background-color: var(--color-peach-section);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build-time knowledge index for Daleel (Vercel / local production builds).
+"""Build-time knowledge index for Murshid (Vercel / local production builds).
 
 Usage:
   python scripts/build_knowledge_index.py

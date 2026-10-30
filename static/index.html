@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>دليل — مساعدك المعرفي</title>
-  <meta name="description" content="مساعدك المعرفي للبحث في الأدلة المعتمدة، مع إظهار المصادر التي استندت إليها الإجابة.">
+  <title>مرشد طلابي — مساعدك المعرفي</title>
+  <meta name="description" content="مساعد يجيب من الأدلة المعتمدة فقط مع إظهار المصادر. العيّنة المرفقة عن أساسيات الذكاء الاصطناعي.">
   
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%23FF6B35'/><path d='M30 70 L30 30 L50 45 L70 30 L70 70' fill='none' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/></svg>">
   <link rel="stylesheet" href="/static/style.css">
@@ -16,7 +16,7 @@
 
       <!-- 1. Header (رأس بسيط) -->
       <header class="site-header" role="banner">
-        <a href="/" class="brand-logo" aria-label="الرئيسية - دليل">
+        <a href="/" class="brand-logo" id="brandLogoLink" aria-label="الرئيسية - مرشد">
           <div class="brand-logo-icon" aria-hidden="true">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
@@ -26,8 +26,8 @@
             </svg>
           </div>
           <div>
-            <span class="brand-logo-text">دليل</span>
-            <div class="brand-tagline">مساعدك المعرفي</div>
+            <span class="brand-logo-text" id="brandLogoText">مرشد</span>
+            <div class="brand-tagline" id="brandTagline">مساعدك للأدلة المعتمدة</div>
           </div>
         </a>
 
@@ -69,8 +69,8 @@
           <h1 class="hero-title" id="heroTitle">
             اسأل أدلتك، واحصل على <span class="highlight-orange">إجابة موثّقة</span>
           </h1>
-          <p class="hero-description">
-            مساعدك المعرفي للبحث في الأدلة المعتمدة، مع إظهار المصادر التي استندت إليها الإجابة.
+          <p class="hero-description" id="heroDescription">
+            مرشد يبحث في الأدلة المعتمدة (العيّنة الحالية: أساسيات الذكاء الاصطناعي) ويعرض المصادر التي استند إليها.
           </p>
           <div class="hero-cta-group">
             <button type="button" class="btn-primary-orange" id="startChatBtn">
@@ -95,7 +95,7 @@
       <!-- Compact Top Banner (Shown after first message) -->
       <div class="compact-top-banner" id="compactBanner" aria-hidden="true">
         <div style="display:flex; align-items:center; gap:0.6rem;">
-          <span style="font-weight:700; color:var(--color-charcoal-dark); font-size:0.9rem;">دليل: اسأل أدلتك المعتمدة واحصل على إجابة موثّقة</span>
+          <span id="compactBannerText" style="font-weight:700; color:var(--color-charcoal-dark); font-size:0.9rem;">مرشد طلابي: اسأل أدلتك المعتمدة واحصل على إجابة موثّقة</span>
         </div>
         <button type="button" class="btn-icon-sm" id="expandHeroBtn" title="عرض المقدمة">
           <span>عرض التفاصيل</span>
@@ -105,7 +105,7 @@
 
       <!-- 3. مساحة المحادثة — العنصر الرئيسي -->
       <main class="chat-container" id="chat">
-        <div class="chat-card" role="region" aria-label="منطقة المحادثة مع دليل">
+        <div class="chat-card" id="chatCard" role="region" aria-label="منطقة المحادثة مع مرشد طلابي">
           
           <!-- Card Header -->
           <div class="chat-card-header">
@@ -116,7 +116,7 @@
                 </svg>
               </div>
               <div>
-                <div class="assistant-name">دليل — المساعد المعرفي</div>
+                <div class="assistant-name" id="assistantName">مرشد طلابي</div>
                 <div class="status-pill incomplete" id="chatCardStatusPill" style="padding:0.15rem 0.6rem; font-size:0.75rem; margin-top:2px;">
                   <span class="status-dot incomplete" id="chatCardStatusDot"></span>
                   <span id="chatCardStatusText">جاري فحص الأدلة المحلية...</span>
@@ -151,13 +151,13 @@
                   <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                 </svg>
               </div>
-              <h2 class="empty-title">مرحباً بك في «دليل»</h2>
-              <p class="empty-desc">
-                اطرح استفسارك، وسأبحث حصرياً داخل الأدلة واللوائح المعتمدة محلياً لأقدّم لك إجابة دقيقة وموثّقة مع مقتطفات المصادر والصفحات.
+              <h2 class="empty-title" id="emptyTitle">مرحباً بك في «مرشد طلابي»</h2>
+              <p class="empty-desc" id="emptyDesc">
+                اطرح سؤالك وسأبحث حصرياً داخل الأدلة المعتمدة. العيّنة الحالية عن أساسيات الذكاء الاصطناعي — استبدلها بأدلتك الطلابية عند التخصيص.
               </p>
 
-              <div class="suggestions-title">اقتراحات لبدء المحادثة (عيّنة DEMO):</div>
-              <div class="suggestions-chips" role="group" aria-label="أسئلة مقترحة">
+              <div class="suggestions-title" id="suggestionsTitle">اقتراحات لبدء المحادثة (عيّنة DEMO — أساسيات الذكاء الاصطناعي):</div>
+              <div class="suggestions-chips" id="suggestionsChips" role="group" aria-label="أسئلة مقترحة">
                 <button type="button" class="suggestion-chip" data-query="ما الذكاء الاصطناعي؟ اذكر تطبيقين وردا في الدليل.">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   <span>ما الذكاء الاصطناعي؟</span>
@@ -191,7 +191,7 @@
               <textarea 
                 id="queryInput" 
                 class="chat-textarea" 
-                placeholder="اكتب استفسارك هنا حول الأدلة المعتمدة... (Enter للإرسال، Shift+Enter لسطر جديد)" 
+                placeholder="اكتب سؤالك حول محتوى الأدلة المعتمدة... (Enter للإرسال)" 
                 rows="1"
                 aria-label="مربع السؤال"></textarea>
               
@@ -216,9 +216,9 @@
         </div>
       </main>
 
-      <!-- 4. Supporting Section («كيف يعمل دليل؟») -->
+      <!-- 4. Supporting Section («كيف يعمل مرشد؟») -->
       <section class="how-it-works-section" id="how-it-works" aria-labelledby="howItWorksTitle">
-        <h2 class="section-title" id="howItWorksTitle">كيف يعمل دليل؟</h2>
+        <h2 class="section-title" id="howItWorksTitle">كيف يعمل مرشد؟</h2>
         <div class="steps-grid">
           
           <div class="step-card">
@@ -250,9 +250,9 @@
 
       <!-- 5. Footer -->
       <footer class="site-footer" role="contentinfo">
-        <div class="footer-brand">دليل — المعرفة من مصادرها</div>
-        <p class="footer-disclaimer">
-          قد تخطئ الإجابات الآلية؛ راجع المصادر عند الحاجة.
+        <div class="footer-brand" id="footerBrand">مرشد — المعرفة من مصادرها المعتمدة</div>
+        <p class="footer-disclaimer" id="footerDisclaimer">
+          قد تخطئ الإجابات الآلية؛ راجع المصادر عند الحاجة. لا تضع أدلة خاصة في مستودع عام.
         </p>
       </footer>
 
@@ -287,7 +287,7 @@
         </div>
         <div class="folder-info-row">
           <span>مكان الحفظ:</span>
-          <span class="folder-id-code">knowledge/ (محمي بالخادم)</span>
+          <span class="folder-id-code">Knowledge/ (محمي بالخادم)</span>
         </div>
         <div class="folder-info-row">
           <span>حالة الفهرس المحلي:</span>
@@ -298,7 +298,7 @@
         </div>
         <div class="folder-info-row">
           <span>عدد الأدلة المعتمدة:</span>
-          <strong id="drawerFilesCount">7 أدلة</strong>
+          <strong id="drawerFilesCount">0 أدلة</strong>
         </div>
         <div class="folder-info-row">
           <span>إجمالي المقاطع المفهرسة:</span>

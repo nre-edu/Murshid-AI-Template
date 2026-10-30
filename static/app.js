@@ -1,4 +1,4 @@
-// دليل — مساعدك المعرفي | المحرك البرمجي للواجهة (إصدار الأدلة المحلية المعتمدة)
+// مرشد — مساعدك المعرفي | المحرك البرمجي للواجهة (إصدار الأدلة المحلية المعتمدة)
 document.addEventListener('DOMContentLoaded', () => {
   // Application State
   const state = {
@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     isGenerating: false,
     abortController: null,
     systemStatus: null,
+    branding: null,
     hasSentFirstMessage: false,
     currentViewingSourceText: ''
   };
@@ -155,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!documents || documents.length === 0) {
       drawerFilesList.innerHTML = `
         <div style="background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:0.75rem; padding:1.25rem; text-align:center; font-size:0.88rem; color:var(--color-charcoal-muted);">
-          لا توجد أدلة مفهرسة حالياً في مجلد knowledge/.
+          لا توجد أدلة مفهرسة حالياً في مجلد Knowledge/.
         </div>
       `;
       return;
@@ -247,19 +248,114 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.querySelectorAll('.suggestion-chip').forEach(chip => {
-    chip.addEventListener('click', async () => {
-      if (chip.getAttribute('data-demo-map') === '1') {
-        await loadDemoAnswerMap();
-        return;
-      }
-      const q = chip.getAttribute('data-query');
-      if (q) {
-        queryInput.value = q;
-        chatForm.dispatchEvent(new Event('submit'));
-      }
+  function bindSuggestionChips() {
+    document.querySelectorAll('.suggestion-chip').forEach(chip => {
+      if (chip.dataset.bound === '1') return;
+      chip.dataset.bound = '1';
+      chip.addEventListener('click', async () => {
+        if (chip.getAttribute('data-demo-map') === '1') {
+          await loadDemoAnswerMap();
+          return;
+        }
+        const q = chip.getAttribute('data-query');
+        if (q) {
+          queryInput.value = q;
+          chatForm.dispatchEvent(new Event('submit'));
+        }
+      });
     });
-  });
+  }
+
+  const CHIP_ICONS = [
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
+  ];
+
+  function setTextContent(id, text) {
+    const el = document.getElementById(id);
+    if (el && text != null && String(text).trim() !== '') {
+      el.textContent = text;
+    }
+  }
+
+  function applyBranding(b) {
+    if (!b || typeof b !== 'object') return;
+    state.branding = b;
+
+    if (b.page_title) document.title = b.page_title;
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta && b.description) meta.setAttribute('content', b.description);
+
+    setTextContent('brandLogoText', b.product_name);
+    setTextContent('brandTagline', b.tagline);
+    const brandLink = document.getElementById('brandLogoLink');
+    if (brandLink) {
+      brandLink.setAttribute('aria-label', `الرئيسية - ${b.product_name || 'مرشد'}`);
+    }
+
+    const heroTitle = document.getElementById('heroTitle');
+    if (heroTitle && b.hero_title_html) heroTitle.innerHTML = b.hero_title_html;
+    setTextContent('heroDescription', b.hero_description);
+    setTextContent('compactBannerText', b.compact_banner);
+    setTextContent('assistantName', b.assistant_name || b.variant_name || b.product_name);
+
+    const chatCard = document.getElementById('chatCard');
+    if (chatCard) {
+      const name = b.assistant_name || b.variant_name || b.product_name || 'مرشد';
+      chatCard.setAttribute('aria-label', `منطقة المحادثة مع ${name}`);
+    }
+
+    setTextContent('emptyTitle', b.welcome_title);
+    setTextContent('emptyDesc', b.welcome_message);
+    setTextContent('suggestionsTitle', b.suggestions_title);
+    setTextContent('howItWorksTitle', b.how_it_works_title);
+    setTextContent('footerBrand', b.footer_brand);
+    setTextContent('footerDisclaimer', b.footer_disclaimer);
+
+    if (queryInput && b.input_placeholder) {
+      queryInput.placeholder = b.input_placeholder;
+    }
+
+    const chipsHost = document.getElementById('suggestionsChips');
+    const questions = Array.isArray(b.suggested_questions) ? b.suggested_questions : [];
+    if (chipsHost && questions.length) {
+      const demoBtn = document.getElementById('demoAnswerMapBtn');
+      chipsHost.querySelectorAll('.suggestion-chip:not([data-demo-map])').forEach(el => el.remove());
+      const frag = document.createDocumentFragment();
+      questions.forEach((item, idx) => {
+        const query = (item && item.query) ? String(item.query).trim() : '';
+        if (!query) return;
+        const label = (item && item.label) ? String(item.label).trim() : query.slice(0, 48);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'suggestion-chip';
+        btn.setAttribute('data-query', query);
+        btn.innerHTML = `${CHIP_ICONS[idx % CHIP_ICONS.length]}<span></span>`;
+        btn.querySelector('span').textContent = label;
+        frag.appendChild(btn);
+      });
+      if (demoBtn) {
+        chipsHost.insertBefore(frag, demoBtn);
+      } else {
+        chipsHost.appendChild(frag);
+      }
+      bindSuggestionChips();
+    }
+  }
+
+  async function fetchBranding() {
+    try {
+      const res = await fetch('/api/branding');
+      if (!res.ok) throw new Error('فشل جلب الهوية');
+      const data = await res.json();
+      applyBranding(data);
+    } catch (err) {
+      console.error('[Branding error]', err);
+    }
+  }
+
+  bindSuggestionChips();
 
   async function loadDemoAnswerMap() {
     try {
@@ -824,6 +920,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Initial load
+  fetchBranding();
   fetchStatus().then(() => updateKeyStatusHint());
   fetchSources();
 });

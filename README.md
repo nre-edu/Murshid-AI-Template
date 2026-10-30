@@ -1,4 +1,4 @@
-# دليل (Daleel) — قالب عام
+# مرشد (Murshid-AI-Template)
 
 قالب عام مستقل لمساعد دردشة عربي يبحث في ملفات Markdown داخل مجلد `Knowledge/` ويجيب **من المصادر المعتمدة فقط**، مع استشهادات رقمية ومقتطفات، وخريطة إجابة اختيارية للأسئلة الهيكلية.
 
@@ -13,12 +13,14 @@
 ## الترخيص
 
 المرخّص بموجب **MIT** — انظر ملف [`LICENSE`](LICENSE).  
+Copyright (c) 2026 Murshid-AI-Template contributors.  
 يمكنك استخدام القالب ونسخه وتعديله ونشر نسخك الخاصة بحرية وفق شروط MIT.
 
 ## المميزات
 
 - استرجاع مقاطع من ملفات Markdown داخل `Knowledge/` (مع استثناء `Knowledge/_examples/`).
 - إجابات عبر Gemini استنادًا للمقاطع المسترجعة فقط؛ عند غياب الدليل يُصرَّح بعدم الكفاية.
+- هوية المنتج من `config/branding.json` عبر `/api/branding` (الاسم، الرسائل، الأسئلة المقترحة).
 - استشهادات قابلة للعرض من الخادم (المحتوى لا يُخدم عبر `/static`).
 - فهرسة وقت البناء مناسبة لنشر Vercel (نظام ملفات للقراءة فقط).
 
@@ -60,6 +62,30 @@ pip install -r requirements.txt
 زر **«إضافة مفتاح الذكاء»** يعرض تعليمات الإعداد فقط؛ لا يحفظ المفتاح من الواجهة ولا يعرض قيمته.
 
 راجع أيضًا ملف [`DEMO.md`](DEMO.md) و[`docs/DEMO_TEST_QUESTIONS.md`](docs/DEMO_TEST_QUESTIONS.md).
+
+## التخصيص (الهوية والرسائل)
+
+عدّل فقط [`config/branding.json`](config/branding.json):
+
+| الحقل | الغرض |
+|--------|--------|
+| `product_name` / `variant_name` / `assistant_name` | مرشد / مرشد طلابي / اسم المساعد في المحادثة |
+| `page_title`, `hero_*`, `welcome_*`, `footer_*` | نصوص الواجهة |
+| `suggested_questions` | شرائح الاقتراح في الشاشة الفارغة |
+
+الواجهة تجلب هذه القيم من `/api/branding` عند التحميل. اسم المساعد في تعليمات Gemini يُحمَّل من نفس الملف.
+
+### أمثلة أسئلة طلابية (بعد استبدال عيّنة DEMO)
+
+العيّنة الافتراضية عن **أساسيات الذكاء الاصطناعي**. بعد وضع أدلة الدراسة/التسجيل في `Knowledge/`، حدّث `suggested_questions` مثلًا:
+
+```json
+"suggested_questions": [
+  {"label": "موعد التسجيل", "query": "متى تفتح فترة التسجيل للفصول الدراسية حسب الدليل؟"},
+  {"label": "الاستعداد للاختبارات", "query": "ما نصائح الاستعداد للاختبارات المذكورة في الدليل؟"},
+  {"label": "خدمات الطلاب", "query": "ما الخدمات الطلابية الأساسية المذكورة في الدليل؟"}
+]
+```
 
 ## ملف `.env.example`
 
@@ -109,7 +135,7 @@ pip install -r requirements.txt
 - لا ترفع `.env` أو مفاتيح API.
 - محتوى `Knowledge/` والفهرس للخادم فقط؛ لا يُضمَّن كاملًا في حزمة JavaScript للمتصفح.
 
-## النشر على Vercel
+## النشر على Vercel / GitHub Template
 
 1. من GitHub: استخدم **Use this template** لإنشاء مستودع جديد، أو Import المشروع في Vercel.
 2. Framework: يُكتشف FastAPI عادةً تلقائيًا (`app` في `app/main.py`).
@@ -120,6 +146,7 @@ pip install -r requirements.txt
    - اختياري: `GEMINI_MODEL=gemini-3.5-flash-lite`
 6. Deploy ثم اختبر الموقع.
 7. بعد تغيير ملفات `Knowledge/`: ابنِ الفهرس وادفع ثم Redeploy.
+8. لتفعيل القالب كـ Template على GitHub: **Settings → General → Template repository** ← فعّل الخيار.
 
 ## حدود الخطط المجانية (تقديرية — راجع الوثائق الرسمية)
 
@@ -144,11 +171,12 @@ pip install -r requirements.txt
 ```
 Knowledge/                 # أدلة Markdown (خادم فقط)
 Knowledge/_examples/       # أسئلة تجربة — غير مفهرسة
+config/branding.json       # الهوية والأسئلة المقترحة
 docs/                      # وثائق وأسئلة DEMO
 app/                       # FastAPI + الاسترجاع + Gemini
 static/                    # الواجهة فقط
 scripts/build_knowledge_index.py
 data/knowledge_index.json  # ناتج البناء (يُنشأ محليًا / وقت Build)
-LICENSE                    # MIT
+LICENSE                    # MIT — Murshid-AI-Template
 .env.example               # أسرار فارغة للنسخ المحلي
 ```

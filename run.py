@@ -22,14 +22,14 @@ if __name__ == "__main__":
         payload = build_index_payload(KNOWLEDGE_DIR)
         write_built_index(payload, BUILT_INDEX_FILE)
         print(
-            f"[Daleel] Index ready: {payload['documents_count']} docs / "
+            f"[مرشد] Index ready: {payload['documents_count']} docs / "
             f"{payload['chunks_count']} chunks"
         )
     except Exception as ex:
-        print(f"[Daleel] Index build skipped/failed: {ex}")
+        print(f"[مرشد] Index build skipped/failed: {ex}")
 
     print("=" * 60)
-    print("Daleel Server - Starting...")
+    print("مرشد (Murshid) Server - Starting...")
     print("URL: http://127.0.0.1:8000")
     print("Knowledge: ./Knowledge (server-side only)")
     print("=" * 60)

@@ -6,9 +6,23 @@ import requests
 
 from app.answer_map import validate_answer_map
 from app.arabic_text_fix import is_text_readable_arabic
+from app.branding import load_branding
 from app.config import GEMINI_MODEL, get_gemini_api_key
 
-SYSTEM_PROMPT = """أنت «دليل — مساعدك المعرفي»، المساعد المعتمد للإجابة حصرياً من مقاطع الأدلة المرفقة.
+
+def _assistant_display_name() -> str:
+    b = load_branding()
+    name = (
+        str(b.get("assistant_name") or b.get("variant_name") or b.get("product_name") or "مرشد")
+        .strip()
+    )
+    return name or "مرشد"
+
+
+def build_system_prompt() -> str:
+    """Sources-only system prompt; assistant display name comes from branding."""
+    name = _assistant_display_name()
+    return f"""أنت «{name}»، المساعد المعتمد للإجابة حصرياً من مقاطع الأدلة المرفقة.
 
 قواعد الإجابة:
 1) ابدأ مباشرة بـ: الإجابة:
@@ -23,16 +37,16 @@ SYSTEM_PROMPT = """أنت «دليل — مساعدك المعرفي»، الم�
 بعد نص الإجابة، أخرج كتلة JSON واحدة فقط بهذا الشكل عندما يناسب السؤال (تبعية/مهام/خطوات/تصنيفات) ويكون النص المقروء كافياً:
 
 <<<MAP_JSON>>>
-{
+{{
   "rootId": "root",
   "nodes": [
-    {"id": "root", "label": "موضوع مختصر", "detail": "تفصيل قصير", "sourceIds": []},
-    {"id": "b1", "label": "فرع", "detail": "...", "sourceIds": ["CHUNK_ID_OR_1"]}
+    {{"id": "root", "label": "موضوع مختصر", "detail": "تفصيل قصير", "sourceIds": []}},
+    {{"id": "b1", "label": "فرع", "detail": "...", "sourceIds": ["CHUNK_ID_OR_1"]}}
   ],
   "edges": [
-    {"from": "root", "to": "b1", "label": "يتبع إداريًا", "sourceIds": ["CHUNK_ID_OR_1"]}
+    {{"from": "root", "to": "b1", "label": "يتبع إداريًا", "sourceIds": ["CHUNK_ID_OR_1"]}}
   ]
-}
+}}
 <<<END_MAP>>>
 
 قيود الخريطة:
@@ -45,6 +59,10 @@ null
 <<<END_MAP>>>
 لا تُخرج HTML ولا Markdown داخل JSON.
 """
+
+
+# Cached at import for introspection; runtime chat uses build_system_prompt().
+SYSTEM_PROMPT = build_system_prompt()
 
 
 def _query_wants_map(query: str) -> bool:
@@ -107,7 +125,7 @@ class GeminiClient:
         contents.append({"role": "user", "parts": [{"text": prompt_content}]})
 
         return {
-            "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "system_instruction": {"parts": [{"text": build_system_prompt()}]},
             "contents": contents,
             "generationConfig": {
                 "temperature": 0.1,

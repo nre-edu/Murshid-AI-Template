@@ -178,13 +178,13 @@ def fix_arabic_pdf_text(text: str) -> str:
     return text
 
 
-def is_text_readable_arabic(text: str, min_letters: int = 40) -> bool:
-    """Heuristic: reject heavily corrupted Arabic for map generation."""
+def is_text_readable(text: str, min_letters: int = 40) -> bool:
+    """Heuristic: reject heavily corrupted Arabic; text in other languages passes."""
     if not text or len(text.strip()) < 20:
         return False
     arabic_letters = len(re.findall(r"[\u0600-\u06FF]", text))
     if arabic_letters < min_letters:
-        return False
+        return len(re.findall(r"[A-Za-z]", text)) >= min_letters
     # High density of classic ligature-swap markers means still corrupted
     corrupt_hits = text.count("اإل") + text.count("األ") + text.count("اآل")
     if corrupt_hits > max(3, arabic_letters // 80):

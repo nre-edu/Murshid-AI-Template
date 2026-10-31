@@ -1,6 +1,7 @@
 """Local Markdown knowledge retrieval with build-time index support."""
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -16,6 +17,10 @@ ARABIC_STOP_WORDS = {
     "وفقا", "وفق", "حسب", "بشان", "حول", "عن", "في", "من", "الى", "علي", "مع",
     "هذا", "هذه", "ذلك", "تلك", "كل", "جميع", "بعض", "اي", "التي", "الذي",
     "الذين", "اللواتي", "اللاتي", "المنوطه", "منوطه", "المنوط", "منوط", "كافة",
+    "كم", "يمكن", "ممكن", "اريد", "اذكر", "وضح", "اشرح", "اليوم",
+    "the", "is", "are", "was", "were", "what", "when", "where", "who", "why", "how",
+    "do", "does", "did", "of", "in", "on", "at", "to", "for", "and", "or", "an", "by",
+    "with", "from", "this", "that", "it", "be", "can", "about",
 }
 
 WEAK_ONLY_TERMS = {
@@ -23,9 +28,11 @@ WEAK_ONLY_TERMS = {
     "مهام", "مسؤوليات", "مسؤوليه", "التطبيقات", "المهام",
 }
 
-DOC_HINTS = [
-    (("ذكاء اصطناعي", "الذكاء الاصطناعي", "تعلم الاله", "التعلم العميق", "توليدي"), "ai-demo-001"),
-]
+SUPPORTED_SUFFIXES = (".md", ".markdown", ".txt")
+
+# Share of the question's meaningful words a passage must contain. The model is
+# the second gate (it must refuse when passages fall short), so this stays lenient.
+MIN_QUERY_COVERAGE = 0.5
 
 
 def normalize_arabic(text: str) -> str:
@@ -62,7 +69,7 @@ def stem_arabic_word(word: str) -> List[str]:
     return list(dict.fromkeys(variants))
 
 
-def tokenize(text: str, filter_stops: bool = True) -> List[str]:
+def tokenize(text: str, filter_stops: bool = True, unique: bool = True) -> List[str]:
     norm = normalize_arabic(text)
     raw_words = [w for w in norm.split() if len(w) >= 2]
     tokens = []
@@ -70,15 +77,8 @@ def tokenize(text: str, filter_stops: bool = True) -> List[str]:
         if filter_stops and w in ARABIC_STOP_WORDS:
             continue
         tokens.extend(stem_arabic_word(w))
-    return list(dict.fromkeys(tokens))
-
-
-def detect_preferred_doc(norm_query: str) -> Optional[str]:
-    for hints, doc_id in DOC_HINTS:
-        for h in hints:
-            if normalize_arabic(h) in norm_query or h in norm_query:
-                return doc_id
-    return None
+    # BM25 needs repeated terms when indexing; queries stay de-duplicated.
+    return list(dict.fromkeys(tokens)) if unique else tokens
 
 
 def extract_key_phrases(norm_query: str) -> List[str]:
@@ -88,22 +88,12 @@ def extract_key_phrases(norm_query: str) -> List[str]:
         phrases.append(f"{raw_words[i]} {raw_words[i+1]}")
         if i + 2 < len(raw_words):
             phrases.append(f"{raw_words[i]} {raw_words[i+1]} {raw_words[i+2]}")
-    for entity in (
-        "الذكاء الاصطناعي",
-        "تعلم الاله",
-        "التعلم العميق",
-        "التعلم الخاضع للاشراف",
-        "الصيانه التنبؤيه",
-        "الذكاء الاصطناعي التوليدي",
-    ):
-        if entity in norm_query:
-            phrases.append(entity)
     return list(dict.fromkeys(p for p in phrases if len(p) > 5))
 
 
 def is_indexable_knowledge_file(md_path: Path) -> bool:
     """
-    Index all supported Markdown under Knowledge/, excluding:
+    Index all supported text files under Knowledge/, excluding:
     - any path under _examples/
     - underscore-prefixed filenames
     - test/demo question files by name
@@ -120,24 +110,37 @@ def is_indexable_knowledge_file(md_path: Path) -> bool:
     name_l = md_path.name.lower()
     if "test-questions" in name_l or name_l.startswith("demo-questions") or "ai-demo-test" in name_l:
         return False
-    return md_path.suffix.lower() in (".md", ".markdown")
+    return md_path.suffix.lower() in SUPPORTED_SUFFIXES
 
 
 def list_indexable_markdown_files(knowledge_dir: Path) -> List[Path]:
     if not knowledge_dir.exists():
         return []
-    files = [p for p in knowledge_dir.rglob("*.md") if is_indexable_knowledge_file(p)]
-    files += [p for p in knowledge_dir.rglob("*.markdown") if is_indexable_knowledge_file(p)]
-    # Deduplicate by resolved path
-    seen = set()
+    files = [p for p in knowledge_dir.rglob("*") if p.is_file() and is_indexable_knowledge_file(p)]
+    return sorted(files, key=lambda x: str(x).lower())
+
+
+def list_unsupported_files(knowledge_dir: Path) -> List[str]:
+    """Files dropped into Knowledge/ that will not be indexed (e.g. PDF, Word)."""
+    if not knowledge_dir.exists():
+        return []
     out = []
-    for p in sorted(files, key=lambda x: str(x).lower()):
-        key = str(p.resolve())
-        if key in seen:
+    for p in knowledge_dir.rglob("*"):
+        rel_parts = {x.lower() for x in p.relative_to(knowledge_dir).parts}
+        if not p.is_file() or "_examples" in rel_parts or p.name.startswith((".", "_")):
             continue
-        seen.add(key)
-        out.append(p)
-    return out
+        if p.suffix.lower() not in SUPPORTED_SUFFIXES:
+            out.append(p.name)
+    return sorted(out)
+
+
+def knowledge_fingerprint(knowledge_dir: Path) -> str:
+    """Content hash of the indexable files; detects a stale built index."""
+    digest = hashlib.sha256()
+    for p in list_indexable_markdown_files(knowledge_dir):
+        digest.update(p.relative_to(knowledge_dir).as_posix().encode("utf-8"))
+        digest.update(p.read_bytes())
+    return digest.hexdigest()
 
 
 def parse_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
@@ -290,11 +293,14 @@ def build_index_payload(knowledge_dir: Path = None) -> Dict[str, Any]:
 
     for md_path in md_files:
         try:
-            with open(md_path, "r", encoding="utf-8") as f:
+            # utf-8-sig: Windows editors often save a BOM, which would hide the front matter
+            with open(md_path, "r", encoding="utf-8-sig") as f:
                 content = f.read()
             content = fix_arabic_pdf_text(content)
             meta, body = parse_frontmatter(content)
             doc_id = meta.get("id") or md_path.stem
+            if doc_id in docs_dict:
+                doc_id = f"{doc_id}-{md_path.stem}"
             doc_title = meta.get("title") or md_path.stem.replace("_", " ")
             orig_file = meta.get("original_filename") or md_path.name
             try:
@@ -312,6 +318,7 @@ def build_index_payload(knowledge_dir: Path = None) -> Dict[str, Any]:
                 "file_path": rel_path.replace("\\", "/"),
                 "file_size": md_path.stat().st_size,
                 "sections_count": len(doc_chunks),
+                "demo": str(meta.get("demo", "")).lower() == "true",
             }
         except Exception as e:
             print(f"[KnowledgeEngine] Error parsing {md_path.name}: {e}")
@@ -327,7 +334,7 @@ def build_index_payload(knowledge_dir: Path = None) -> Dict[str, Any]:
             f"{chunk['doc_title']} {chunk['section_title']} "
             f"{chunk.get('parent_unit', '')} {chunk['section_title']} {chunk['content']}"
         )
-        tokens = tokenize(full_text, filter_stops=True)
+        tokens = tokenize(full_text, filter_stops=True, unique=False)
         doc_len = len(tokens)
         doc_lengths.append(doc_len)
         total_len += doc_len
@@ -348,6 +355,7 @@ def build_index_payload(knowledge_dir: Path = None) -> Dict[str, Any]:
         "version": 1,
         "last_indexed": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "knowledge_path": "Knowledge",
+        "fingerprint": knowledge_fingerprint(kdir),
         "documents_count": len(docs_dict),
         "chunks_count": len(all_chunks),
         "documents": docs_dict,
@@ -378,9 +386,9 @@ def write_built_index(payload: Dict[str, Any], dest: Path = None) -> Path:
 
 
 class LocalKnowledgeEngine:
-    def __init__(self):
-        self.knowledge_dir = KNOWLEDGE_DIR
-        self.built_index_file = BUILT_INDEX_FILE
+    def __init__(self, knowledge_dir: Path = None, built_index_file: Path = None):
+        self.knowledge_dir = knowledge_dir or KNOWLEDGE_DIR
+        self.built_index_file = built_index_file or BUILT_INDEX_FILE
         self.documents: Dict[str, Dict[str, Any]] = {}
         self.chunks: List[Dict[str, Any]] = []
         self.chunk_by_id: Dict[str, Dict[str, Any]] = {}
@@ -392,6 +400,7 @@ class LocalKnowledgeEngine:
         self.last_indexed_time: Optional[str] = None
         self._dir_mtime: float = 0.0
         self._loaded_from_built = False
+        self._fingerprint: Optional[str] = None
         self.load_or_build()
 
     def _get_dir_state(self) -> float:
@@ -419,6 +428,7 @@ class LocalKnowledgeEngine:
         }
         self.idf = {k: float(v) for k, v in (payload.get("idf") or {}).items()}
         self.last_indexed_time = payload.get("last_indexed")
+        self._fingerprint = payload.get("fingerprint")
         self._dir_mtime = self._get_dir_state()
 
     def load_built_index(self) -> bool:
@@ -459,23 +469,11 @@ class LocalKnowledgeEngine:
         return payload
 
     def load_or_build(self):
-        # Prefer prebuilt index (Vercel / production). Rebuild locally if missing or stale.
+        # A built index is only a speed-up: it is ignored unless it matches Knowledge/ exactly,
+        # so adding sources and redeploying is always enough. Serverless builds in memory.
         loaded = self.load_built_index()
-        if IS_SERVERLESS:
-            if not loaded:
-                # Last resort on serverless: build in-memory only (no write)
-                self.rebuild_index(persist=False)
-            return
-
-        if not loaded:
-            self.rebuild_index(persist=True)
-            return
-
-        # Local: refresh if Knowledge files changed after index
-        current = self._get_dir_state()
-        md_count = len(list_indexable_markdown_files(self.knowledge_dir))
-        if current > self._dir_mtime or len(self.documents) != md_count:
-            self.rebuild_index(persist=True)
+        if not loaded or self._fingerprint != knowledge_fingerprint(self.knowledge_dir):
+            self.rebuild_index()
 
     def check_and_reload_if_needed(self):
         if IS_SERVERLESS:
@@ -496,6 +494,8 @@ class LocalKnowledgeEngine:
             "ready": len(self.chunks) > 0,
             "readonly": IS_SERVERLESS,
             "index_source": "built" if self._loaded_from_built else "live",
+            "has_demo_docs": any(d.get("demo") for d in self.documents.values()),
+            "unsupported_files": list_unsupported_files(self.knowledge_dir),
         }
 
     def get_documents_list(self) -> List[Dict[str, Any]]:
@@ -547,6 +547,20 @@ class LocalKnowledgeEngine:
             return phrase_hit or strong_hits >= 3
         return strong_hits >= 2
 
+    def _covers_query(self, norm_query: str, chunk: Dict[str, Any], phrases: List[str]) -> bool:
+        words = [
+            w for w in norm_query.split()
+            if len(w) >= 2 and w not in ARABIC_STOP_WORDS and w not in WEAK_ONLY_TERMS
+        ]
+        if not words:
+            return False
+        passage = f"{chunk.get('section_title', '')} {chunk.get('parent_unit', '')} {chunk['content']}"
+        if any(ph in normalize_arabic(passage) for ph in phrases):
+            return True
+        passage_terms = set(tokenize(passage, filter_stops=False))
+        hits = sum(1 for w in words if passage_terms.intersection(stem_arabic_word(w)))
+        return hits > 0 and hits / len(words) >= MIN_QUERY_COVERAGE
+
     def search_bm25(self, query: str, top_k: int = 8) -> List[Tuple[float, Dict[str, Any]]]:
         self.check_and_reload_if_needed()
         if not self.chunks:
@@ -574,7 +588,6 @@ class LocalKnowledgeEngine:
                 scores[chunk_idx] = scores.get(chunk_idx, 0.0) + term_idf * (numerator / denominator)
 
         phrases = extract_key_phrases(norm_query)
-        preferred_doc_id = detect_preferred_doc(norm_query)
 
         for chunk_idx in list(scores.keys()):
             chunk = self.chunks[chunk_idx]
@@ -585,11 +598,6 @@ class LocalKnowledgeEngine:
                     scores[chunk_idx] += 45.0
                 elif ph in norm_content:
                     scores[chunk_idx] += 30.0
-            if preferred_doc_id:
-                if chunk["doc_id"] == preferred_doc_id:
-                    scores[chunk_idx] += 25.0
-                else:
-                    scores[chunk_idx] *= 0.35
             if not self._topical_overlap_ok(query_tokens, chunk, phrases):
                 scores[chunk_idx] *= 0.15
 
@@ -645,13 +653,9 @@ class LocalKnowledgeEngine:
         if not scored_results:
             return [], "", False
 
-        top_score, top_chunk = scored_results[0]
-        phrases = extract_key_phrases(normalize_arabic(query))
-        q_tokens = tokenize(query, filter_stops=True)
-        # Slightly lower gate for small demo corpora
-        min_score = 8.0 if len(self.chunks) <= 20 else 12.0
-        if top_score < min_score or not self._topical_overlap_ok(q_tokens, top_chunk, phrases):
-            return [], "", False
+        top_score = scored_results[0][0]
+        norm_query = normalize_arabic(query)
+        phrases = extract_key_phrases(norm_query)
 
         entity_phrases = [p for p in phrases if len(p) >= 9]
         phrase_hit_units = set()
@@ -667,11 +671,9 @@ class LocalKnowledgeEngine:
 
         filtered = []
         for score, chunk in scored_results:
-            if score < max(min_score * 0.8, top_score * 0.25):
+            if score < top_score * 0.25 or not self._covers_query(norm_query, chunk, phrases):
                 continue
-            if not self._topical_overlap_ok(q_tokens, chunk, phrases):
-                continue
-            if entity_phrases:
+            if phrase_hit_units:
                 blob = normalize_arabic(
                     f"{chunk.get('parent_unit', '')} {chunk['section_title']} {chunk['content']}"
                 )

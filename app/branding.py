@@ -2,12 +2,18 @@
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
-from typing import Any, Dict, List
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from app.config import BASE_DIR
 
 BRANDING_PATH = BASE_DIR / "config" / "branding.json"
+INSTRUCTIONS_PATH = BASE_DIR / "config" / "instructions.md"
+LOGO_DIR = BASE_DIR / "Logo"
+LOGO_SUFFIXES = (".svg", ".png", ".webp", ".jpg", ".jpeg")
+MAX_INSTRUCTIONS_CHARS = 4000
 
 _DEFAULTS: Dict[str, Any] = {
     "product_name": "مرشد",
@@ -27,9 +33,43 @@ _DEFAULTS: Dict[str, Any] = {
     "input_placeholder": "اكتب استفسارك هنا حول الأدلة المعتمدة...",
     "suggestions_title": "اقتراحات لبدء المحادثة:",
     "suggested_questions": [],
+    "demo_questions": [],
     "audience": "",
     "notes": "",
 }
+
+
+def find_logo() -> Optional[Path]:
+    """First image in Logo/, whatever it is called."""
+    if not LOGO_DIR.is_dir():
+        return None
+    images = [p for p in LOGO_DIR.iterdir() if p.is_file() and p.suffix.lower() in LOGO_SUFFIXES]
+    return min(images, key=lambda p: p.name.lower(), default=None)
+
+
+@lru_cache(maxsize=1)
+def load_custom_instructions() -> str:
+    """Site owner's instructions; HTML comments are guidance and are dropped."""
+    if not INSTRUCTIONS_PATH.is_file():
+        return ""
+    try:
+        text = INSTRUCTIONS_PATH.read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeDecodeError):
+        return ""
+    return re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL).strip()[:MAX_INSTRUCTIONS_CHARS]
+
+
+def _clean_questions(questions: Any) -> List[Dict[str, str]]:
+    cleaned: List[Dict[str, str]] = []
+    for item in questions if isinstance(questions, list) else []:
+        if not isinstance(item, dict):
+            continue
+        query = str(item.get("query") or "").strip()
+        if not query:
+            continue
+        label = str(item.get("label") or query[:48]).strip()
+        cleaned.append({"label": label, "query": query})
+    return cleaned
 
 
 @lru_cache(maxsize=1)
@@ -42,19 +82,8 @@ def load_branding() -> Dict[str, Any]:
                 data.update({k: v for k, v in raw.items() if v is not None})
         except (OSError, json.JSONDecodeError):
             pass
-    questions = data.get("suggested_questions") or []
-    if not isinstance(questions, list):
-        questions = []
-    cleaned: List[Dict[str, str]] = []
-    for item in questions:
-        if not isinstance(item, dict):
-            continue
-        query = str(item.get("query") or "").strip()
-        if not query:
-            continue
-        label = str(item.get("label") or query[:48]).strip()
-        cleaned.append({"label": label, "query": query})
-    data["suggested_questions"] = cleaned
+    data["suggested_questions"] = _clean_questions(data.get("suggested_questions"))
+    data["demo_questions"] = _clean_questions(data.get("demo_questions"))
     data["product_name"] = str(data.get("product_name") or "مرشد").strip() or "مرشد"
     data["variant_name"] = (
         str(data.get("variant_name") or data["product_name"]).strip()
@@ -63,9 +92,14 @@ def load_branding() -> Dict[str, Any]:
     return data
 
 
-def get_branding_public() -> Dict[str, Any]:
-    """Safe public payload for /api/branding (no secrets by design)."""
+def get_branding_public(has_demo_docs: bool = False) -> Dict[str, Any]:
+    """Safe public payload for /api/branding (no secrets by design).
+
+    Demo questions only make sense while the bundled sample is still indexed.
+    """
     b = load_branding()
+    questions = b["suggested_questions"] or (b["demo_questions"] if has_demo_docs else [])
+    logo = find_logo()
     return {
         "product_name": b["product_name"],
         "variant_name": b["variant_name"],
@@ -83,6 +117,9 @@ def get_branding_public() -> Dict[str, Any]:
         "footer_disclaimer": b["footer_disclaimer"],
         "input_placeholder": b["input_placeholder"],
         "suggestions_title": b["suggestions_title"],
-        "suggested_questions": b["suggested_questions"],
+        "suggested_questions": questions,
+        "show_demo_map": has_demo_docs,
+        # The size changes with the image, so a new logo is not hidden by browser cache
+        "logo_url": f"/api/logo?v={logo.stat().st_size}" if logo else None,
         "audience": b.get("audience") or "",
     }

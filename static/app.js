@@ -8,10 +8,16 @@ document.addEventListener('DOMContentLoaded', () => {
     systemStatus: null,
     branding: null,
     hasSentFirstMessage: false,
-    currentViewingSourceText: ''
+    currentViewingSourceText: '',
+    questionRow: null
   };
-  // Clear any legacy admin token that stored secrets-related session state
-  try { sessionStorage.removeItem('daleel_admin_token'); } catch (e) {}
+
+  // Everything interpolated into innerHTML goes through this
+  function esc(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
 
   // DOM Elements
   const heroSection = document.getElementById('heroSection');
@@ -93,6 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       state.systemStatus = data;
       renderStatusBadges(data);
+      // Setup help is for the site owner; visitors never need it once the key is set
+      if (adminTriggerBtn) adminTriggerBtn.hidden = Boolean(data.has_gemini_key);
     } catch (err) {
       console.error('[Status error]', err);
       renderStatusBadges({
@@ -179,15 +187,15 @@ document.addEventListener('DOMContentLoaded', () => {
             </svg>
           </div>
           <div style="overflow:hidden;">
-            <div class="file-name-txt" title="${doc.title}">${doc.title}</div>
+            <div class="file-name-txt" title="${esc(doc.title)}">${esc(doc.title)}</div>
             <div style="font-size:0.75rem; color:var(--color-charcoal-muted);">
-              ${doc.sections_count} مقطع • ${sizeKb} ك.ب ${versionStr}
+              ${esc(doc.sections_count)} مقطع • ${sizeKb} ك.ب ${esc(versionStr)}
             </div>
-            ${dateStr ? `<div style="font-size:0.72rem; color:#64748B;">${dateStr}</div>` : ''}
+            ${dateStr ? `<div style="font-size:0.72rem; color:#64748B;">${esc(dateStr)}</div>` : ''}
           </div>
         </div>
         <div class="status-pill connected" style="font-size:0.75rem; padding:0.15rem 0.5rem; flex-shrink:0;">
-          معتمد
+          ${doc.demo ? 'تجريبي' : 'معتمد'}
         </div>
       `;
       drawerFilesList.appendChild(item);
@@ -294,6 +302,22 @@ document.addEventListener('DOMContentLoaded', () => {
       brandLink.setAttribute('aria-label', `الرئيسية - ${b.product_name || 'مرشد'}`);
     }
 
+    if (b.logo_url) {
+      const logoHost = document.getElementById('brandLogoIcon');
+      if (logoHost) {
+        const img = document.createElement('img');
+        img.src = b.logo_url;
+        img.alt = '';
+        logoHost.replaceChildren(img);
+        logoHost.classList.add('has-image');
+      }
+      const favicon = document.querySelector('link[rel="icon"]');
+      if (favicon) {
+        favicon.removeAttribute('type');
+        favicon.href = b.logo_url;
+      }
+    }
+
     const heroTitle = document.getElementById('heroTitle');
     if (heroTitle && b.hero_title_html) heroTitle.innerHTML = b.hero_title_html;
     setTextContent('heroDescription', b.hero_description);
@@ -319,8 +343,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const chipsHost = document.getElementById('suggestionsChips');
     const questions = Array.isArray(b.suggested_questions) ? b.suggested_questions : [];
+    const demoBtn = document.getElementById('demoAnswerMapBtn');
+    if (demoBtn) demoBtn.hidden = !b.show_demo_map;
+    const suggestionsBlock = document.getElementById('suggestionsTitle');
+    if (suggestionsBlock) suggestionsBlock.hidden = !questions.length && !b.show_demo_map;
     if (chipsHost && questions.length) {
-      const demoBtn = document.getElementById('demoAnswerMapBtn');
       chipsHost.querySelectorAll('.suggestion-chip:not([data-demo-map])').forEach(el => el.remove());
       const frag = document.createDocumentFragment();
       questions.forEach((item, idx) => {
@@ -366,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (emptyState) emptyState.style.display = 'none';
-      appendMessage('user', data.query || 'معاينة خريطة الإجابة');
+      state.questionRow = appendMessage('user', data.query || 'معاينة خريطة الإجابة').row;
       const { bubble } = appendMessage('assistant', '');
       const demoCitations = (data.answer_map && data.answer_map.sources || []).map((s, i) => ({
         citation_id: i + 1,
@@ -388,7 +415,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn) btn.textContent = 'إخفاء خريطة الإجابة';
       }
       addMessageFooter(bubble, data.answer_text || '');
-      showToast('عينة توضيحية — ليست من أدلة الكلية');
+      focusChat();
+      showToast('عينة توضيحية — ليست إجابة من أدلتك');
     } catch (e) {
       showToast(`خطأ: ${e.message}`);
     }
@@ -416,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
     html = html.replace(/\[(\d+)\]/g, (m, num) => {
       const cite = (citations || []).find(c => String(c.citation_id) === String(num));
       if (cite) {
-        return `<a href="#" class="cite-ref" data-doc-id="${cite.doc_id}" data-chunk-id="${cite.chunk_id}" title="عرض المصدر ${num}">[${num}]</a>`;
+        return `<a href="#" class="cite-ref" data-doc-id="${esc(cite.doc_id)}" data-chunk-id="${esc(cite.chunk_id)}" title="عرض المصدر ${num}">[${num}]</a>`;
       }
       return m;
     });
@@ -507,11 +535,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const label = cite ? `[${cite.citation_id}]` : (src ? src.title : sid);
         const docId = cite ? cite.doc_id : (src && src.doc_id) || '';
         const chunkId = cite ? cite.chunk_id : (src && src.chunk_id) || sid;
-        chips += `<button type="button" class="am-source-chip" data-doc-id="${docId}" data-chunk-id="${chunkId}" data-demo-excerpt="${src && mapData.isDemo ? encodeURIComponent(src.excerpt || '') : ''}">${label}</button>`;
+        chips += `<button type="button" class="am-source-chip" data-doc-id="${esc(docId)}" data-chunk-id="${esc(chunkId)}" data-demo-excerpt="${src && mapData.isDemo ? encodeURIComponent(src.excerpt || '') : ''}">${esc(label)}</button>`;
       });
       detailPanel.innerHTML = `
-        <div class="am-detail-title">${node.label}</div>
-        <div>${node.detail || node.label}</div>
+        <div class="am-detail-title">${esc(node.label)}</div>
+        <div>${esc(node.detail || node.label)}</div>
         <div>${chips}</div>
       `;
       detailPanel.querySelectorAll('.am-source-chip').forEach(btn => {
@@ -615,6 +643,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // Chat Message & Citations Rendering
   // ==========================================
+  // Reading starts at the question, not at the end of the answer
+  function keepQuestionInView() {
+    if (!state.questionRow || !state.questionRow.isConnected) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      return;
+    }
+    const offset = state.questionRow.getBoundingClientRect().top
+      - messagesContainer.getBoundingClientRect().top;
+    messagesContainer.scrollTop += offset - 12;
+  }
+
+  // The hero collapses when chatting starts, which moves the page under the reader
+  function focusChat() {
+    const chat = document.getElementById('chat');
+    const align = () => {
+      // Instant: the page's smooth scrolling would be cut off by the layout change
+      window.scrollTo({ top: window.scrollY + chat.getBoundingClientRect().top, behavior: 'instant' });
+      keepQuestionInView();
+    };
+    align();
+    setTimeout(align, 450);
+  }
+
   function appendMessage(role, initialText = '') {
     if (emptyState) emptyState.style.display = 'none';
 
@@ -627,7 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     row.appendChild(bubble);
     messagesContainer.appendChild(row);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    keepQuestionInView();
 
     return { row, bubble };
   }
@@ -656,21 +707,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.createElement('div');
       card.className = 'source-card';
 
-      const pageBadge = c.page ? `<span class="source-page-badge">صفحة ${c.page}</span>` : '';
+      const pageBadge = c.page ? `<span class="source-page-badge">صفحة ${esc(c.page)}</span>` : '';
 
       card.innerHTML = `
         <div>
           <div class="source-card-header">
-            <span class="source-card-name" title="${c.doc_title}">
+            <span class="source-card-name" title="${esc(c.doc_title)}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              ${c.doc_title}
+              ${esc(c.doc_title)}
             </span>
             ${pageBadge}
           </div>
-          <div style="font-size:0.75rem; font-weight:700; color:#0284C7; margin:0.2rem 0;">📌 ${c.section_title}</div>
-          <p class="source-excerpt" title="${c.excerpt}">«${c.excerpt}»</p>
+          <div style="font-size:0.75rem; font-weight:700; color:#0284C7; margin:0.2rem 0;">📌 ${esc(c.section_title)}</div>
+          <p class="source-excerpt" title="${esc(c.excerpt)}">«${esc(c.excerpt)}»</p>
         </div>
-        <button type="button" class="btn-primary-orange btn-view-source" data-doc-id="${c.doc_id}" data-chunk-id="${c.chunk_id}" style="padding:0.35rem 0.85rem; font-size:0.78rem; min-height:32px; border-radius:8px; align-self:flex-start; margin-top:0.35rem;">
+        <button type="button" class="btn-primary-orange btn-view-source" data-doc-id="${esc(c.doc_id)}" data-chunk-id="${esc(c.chunk_id)}" style="padding:0.35rem 0.85rem; font-size:0.78rem; min-height:32px; border-radius:8px; align-self:flex-start; margin-top:0.35rem;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
           <span>عرض المصدر</span>
         </button>
@@ -690,7 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    keepQuestionInView();
   }
 
   function addMessageFooter(bubbleElement, rawText) {
@@ -734,9 +785,9 @@ document.addEventListener('DOMContentLoaded', () => {
       sourceViewerTitle.textContent = src.doc_title;
       sourceViewerSubtitle.textContent = `القسم: ${src.section_title}`;
       
-      const pageInfo = src.page ? `<span>📄 <strong>الصفحة:</strong> ${src.page}</span>` : '';
-      const dateInfo = src.release_date ? `<span>📅 <strong>تاريخ الإصدار:</strong> ${src.release_date}</span>` : '';
-      const fileInfo = src.original_filename ? `<span>📁 <strong>الملف الأصلي:</strong> ${src.original_filename}</span>` : '';
+      const pageInfo = src.page ? `<span>📄 <strong>الصفحة:</strong> ${esc(src.page)}</span>` : '';
+      const dateInfo = src.release_date ? `<span>📅 <strong>تاريخ الإصدار:</strong> ${esc(src.release_date)}</span>` : '';
+      const fileInfo = src.original_filename ? `<span>📁 <strong>الملف الأصلي:</strong> ${esc(src.original_filename)}</span>` : '';
 
       sourceViewerMeta.innerHTML = `${pageInfo} ${dateInfo} ${fileInfo}`;
       sourceViewerContent.innerHTML = formatMarkdown(src.content);
@@ -769,7 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     collapseHero();
 
-    appendMessage('user', query);
+    state.questionRow = appendMessage('user', query).row;
     state.chatHistory.push({ role: 'user', content: query });
     queryInput.value = '';
     queryInput.style.height = 'auto';
@@ -778,9 +829,10 @@ document.addEventListener('DOMContentLoaded', () => {
     sendBtn.disabled = true;
     stopGenerationBtn.classList.add('visible');
     thinkingIndicator.style.display = 'flex';
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    keepQuestionInView();
 
     const { bubble: assistantBubble } = appendMessage('assistant', '');
+    focusChat();
     let accumulatedText = '';
     let receivedCitations = [];
     let receivedAnswerMap = null;
@@ -794,7 +846,8 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: query,
-          history: state.chatHistory.slice(-6)
+          // The current question is sent as `query`, so it is not repeated here
+          history: state.chatHistory.slice(-7, -1).map(m => ({ role: m.role, content: m.content.slice(0, 4000) }))
         }),
         signal: state.abortController.signal
       });
@@ -830,7 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 accumulatedText += data.text;
                 assistantBubble.innerHTML = formatMarkdown(accumulatedText, receivedCitations);
                 thinkingIndicator.style.display = 'none';
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                keepQuestionInView();
               } else if (data.done) {
                 receivedCitations = data.citations || [];
                 receivedAnswerMap = data.answer_map || null;
@@ -863,7 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('تم إيقاف الاستجابة');
       } else {
         assistantBubble.innerHTML = formatMarkdown(
-          '⚠️ **تعذر إتمام الإجابة.** يرجى التحقق من مفتاح Gemini في لوحة المسؤول أو إعادة المحاولة.',
+          '⚠️ **تعذر إتمام الإجابة.** يرجى إعادة المحاولة، وإن تكررت المشكلة فراجع إعداد مفتاح Gemini.',
           []
         );
       }
@@ -873,7 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sendBtn.disabled = false;
       stopGenerationBtn.classList.remove('visible');
       thinkingIndicator.style.display = 'none';
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      keepQuestionInView();
     }
   });
 
@@ -884,6 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
   newChatBtn.addEventListener('click', () => {
     if (state.isGenerating && state.abortController) state.abortController.abort();
     state.chatHistory = [];
+    state.questionRow = null;
     messagesContainer.innerHTML = '';
     if (emptyState) {
       messagesContainer.appendChild(emptyState);

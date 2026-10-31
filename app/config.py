@@ -15,7 +15,7 @@ else:
 IS_SERVERLESS = bool(
     os.getenv("VERCEL")
     or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
-    or os.getenv("DALEEL_READONLY", "").strip().lower() in ("1", "true", "yes")
+    or os.getenv("MURSHID_READONLY", "").strip().lower() in ("1", "true", "yes")
 )
 
 

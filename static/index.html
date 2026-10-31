@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <title>مرشد طلابي — مساعدك المعرفي</title>
-  <meta name="description" content="مساعد يجيب من الأدلة المعتمدة فقط مع إظهار المصادر. العيّنة المرفقة عن أساسيات الذكاء الاصطناعي.">
+  <meta name="description" content="مساعد يجيب من الأدلة المعتمدة فقط مع إظهار المصادر.">
   
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='%23FF6B35'/><path d='M30 70 L30 30 L50 45 L70 30 L70 70' fill='none' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/></svg>">
   <link rel="stylesheet" href="/static/style.css">
@@ -17,7 +17,7 @@
       <!-- 1. Header (رأس بسيط) -->
       <header class="site-header" role="banner">
         <a href="/" class="brand-logo" id="brandLogoLink" aria-label="الرئيسية - مرشد">
-          <div class="brand-logo-icon" aria-hidden="true">
+          <div class="brand-logo-icon" id="brandLogoIcon" aria-hidden="true">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -70,7 +70,7 @@
             اسأل أدلتك، واحصل على <span class="highlight-orange">إجابة موثّقة</span>
           </h1>
           <p class="hero-description" id="heroDescription">
-            مرشد يبحث في الأدلة المعتمدة (العيّنة الحالية: أساسيات الذكاء الاصطناعي) ويعرض المصادر التي استند إليها.
+            مرشد يبحث في الأدلة المعتمدة ويعرض المصادر التي استند إليها.
           </p>
           <div class="hero-cta-group">
             <button type="button" class="btn-primary-orange" id="startChatBtn">
@@ -88,7 +88,7 @@
         </div>
 
         <div class="hero-illustration-box" aria-hidden="true">
-          <img src="/static/assets/daleel-hero-3d.svg" alt="رسم تعبيري لتوثيق المعرفة والبحث في الأدلة" width="440" height="340" style="max-width: 100%; height: auto;">
+          <img src="/static/assets/murshid-hero-3d.svg" alt="رسم تعبيري لتوثيق المعرفة والبحث في الأدلة" width="440" height="340" style="max-width: 100%; height: auto;">
         </div>
       </section>
 
@@ -153,24 +153,12 @@
               </div>
               <h2 class="empty-title" id="emptyTitle">مرحباً بك في «مرشد طلابي»</h2>
               <p class="empty-desc" id="emptyDesc">
-                اطرح سؤالك وسأبحث حصرياً داخل الأدلة المعتمدة. العيّنة الحالية عن أساسيات الذكاء الاصطناعي — استبدلها بأدلتك الطلابية عند التخصيص.
+                اطرح سؤالك وسأبحث حصريًا داخل الأدلة المعتمدة.
               </p>
 
-              <div class="suggestions-title" id="suggestionsTitle">اقتراحات لبدء المحادثة (عيّنة DEMO — أساسيات الذكاء الاصطناعي):</div>
+              <div class="suggestions-title" id="suggestionsTitle">اقتراحات لبدء المحادثة:</div>
               <div class="suggestions-chips" id="suggestionsChips" role="group" aria-label="أسئلة مقترحة">
-                <button type="button" class="suggestion-chip" data-query="ما الذكاء الاصطناعي؟ اذكر تطبيقين وردا في الدليل.">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                  <span>ما الذكاء الاصطناعي؟</span>
-                </button>
-                <button type="button" class="suggestion-chip" data-query="ما الفرق بين تعلم الآلة والتعلم العميق؟">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <span>تعلم الآلة والتعلم العميق</span>
-                </button>
-                <button type="button" class="suggestion-chip" data-query="كيف يمكن استخدام الذكاء الاصطناعي لتوقع أعطال المعدات؟">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                  <span>الصيانة التنبؤية</span>
-                </button>
-                <button type="button" class="suggestion-chip" id="demoAnswerMapBtn" data-demo-map="1">
+                <button type="button" class="suggestion-chip" id="demoAnswerMapBtn" data-demo-map="1" hidden>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 7v4M12 11l-6 6M12 11l6 6"/></svg>
                   <span>معاينة خريطة الإجابة (عينة)</span>
                 </button>
@@ -370,31 +358,29 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">محليًا</label>
-          <ol style="padding-right:1.2rem; margin:0; font-size:0.88rem; line-height:1.75; color:#0F172A;">
-            <li>انسخ <code>.env.example</code> إلى <code>.env</code>.</li>
-            <li>ضع مفتاحك في <code>GEMINI_API_KEY=</code> (بدون مسافات).</li>
-            <li>اختياري: <code>GEMINI_MODEL=gemini-3.5-flash-lite</code>.</li>
-            <li>أعد تشغيل الخادم: <code>python run.py</code>.</li>
-          </ol>
-        </div>
-
-        <div class="form-group">
           <label class="form-label">على Vercel</label>
           <ol style="padding-right:1.2rem; margin:0; font-size:0.88rem; line-height:1.75; color:#0F172A;">
-            <li>Project → Settings → Environment Variables.</li>
-            <li>أضف <code>GEMINI_API_KEY</code> كمتغير خادم (بدون بادئة <code>NEXT_PUBLIC_</code> أو <code>VITE_</code>).</li>
-            <li>اختياري: <code>GEMINI_MODEL</code>.</li>
+            <li>أنشئ مفتاحًا من Google AI Studio.</li>
+            <li>افتح مشروعك في Vercel ثم Settings ثم Environment Variables.</li>
+            <li>أضف المتغير <code>GEMINI_API_KEY</code> وضع المفتاح قيمةً له.</li>
             <li>أعد النشر (Redeploy) بعد الحفظ.</li>
           </ol>
         </div>
 
+        <div class="form-group">
+          <label class="form-label">عند التشغيل المحلي</label>
+          <ol style="padding-right:1.2rem; margin:0; font-size:0.88rem; line-height:1.75; color:#0F172A;">
+            <li>انسخ <code>.env.example</code> إلى <code>.env</code> وضع المفتاح فيه.</li>
+            <li>أعد تشغيل الخادم: <code>python run.py</code>.</li>
+          </ol>
+        </div>
+
         <div class="form-group" style="padding-top:0.35rem; border-top:1px dashed #E2E8F0;">
-          <label class="form-label">استبدال الأدلة التجريبية</label>
+          <label class="form-label">إضافة مصادرك</label>
           <div style="background:#F1F5F9; border-radius:0.75rem; padding:0.75rem 0.9rem; font-size:0.85rem; color:#0F172A; line-height:1.7;">
-            لاستبدال الأدلة التجريبية، احذفها وضع ملفاتك داخل مجلد <code>Knowledge</code> في جذر المشروع، ثم أعد بناء المشروع ونشره وفق التعليمات
-            (<code>python scripts/build_knowledge_index.py</code> ثم إعادة النشر على Vercel.
-            لا ترفع أدلتك الخاصة إلى مستودع عام.
+            احذف الملف التجريبي من مجلد <code>Knowledge</code> وضع ملفاتك بصيغة <code>.md</code> أو <code>.txt</code>، ثم ارفعها إلى GitHub.
+            يعيد Vercel النشر تلقائيًا، ويُحدَّث الفهرس بلا أوامر.
+            الريبو العام يكشف محتوى هذه الملفات، فلا تضع فيها معلومات سرية أو شخصية.
           </div>
         </div>
       </div>

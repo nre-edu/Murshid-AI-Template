@@ -6,16 +6,15 @@ import os
 import time
 from collections import defaultdict, deque
 from pathlib import Path
-from typing import Any, Deque, Dict, List, Optional
+from typing import Deque, Dict, List, Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.answer_map import DEMO_ANSWER_MAP, DEMO_ANSWER_TEXT, validate_answer_map
-from app.branding import get_branding_public, load_branding
+from app.branding import find_logo, get_branding_public, load_branding
 from app.config import (
     IS_SERVERLESS,
     MAX_QUERY_CHARS,
@@ -33,35 +32,59 @@ app = FastAPI(
     version="4.0.0",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # In-memory rate limit (per process only — not shared across Vercel instances)
 _rate_buckets: Dict[str, Deque[float]] = defaultdict(deque)
+_MAX_RATE_BUCKETS = 10_000
+MAX_HISTORY_ITEMS = 6
+MAX_HISTORY_ITEM_CHARS = 4000
+MAX_BODY_BYTES = 64_000
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Content-Security-Policy": (
+        "default-src 'self'; script-src 'self'; img-src 'self' data:; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src https://fonts.gstatic.com; base-uri 'none'; form-action 'self'"
+    ),
+}
+
+
+@app.middleware("http")
+async def guard_requests(request: Request, call_next):
+    length = request.headers.get("content-length") or "0"
+    if request.method == "POST" and (not length.isdigit() or int(length) > MAX_BODY_BYTES):
+        return JSONResponse({"detail": "حجم الطلب أكبر من المسموح."}, status_code=413)
+    response = await call_next(request)
+    for name, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(name, value)
+    return response
 
 
 class ChatMessage(BaseModel):
-    role: str
+    role: Literal["user", "assistant"]
     content: str
+
+    @field_validator("content")
+    @classmethod
+    def trim_content(cls, value: str) -> str:
+        return value[:MAX_HISTORY_ITEM_CHARS]
 
 
 class ChatRequest(BaseModel):
     query: str = Field(..., max_length=MAX_QUERY_CHARS)
-    history: Optional[List[ChatMessage]] = []
+    history: List[ChatMessage] = Field(default_factory=list, max_length=MAX_HISTORY_ITEMS)
 
 
 def _client_key(request: Request) -> str:
+    # Vercel overwrites X-Forwarded-For; anywhere else a client could forge it
     forwarded = request.headers.get("x-forwarded-for") or ""
-    if forwarded:
+    if IS_SERVERLESS and forwarded:
         return forwarded.split(",")[0].strip()
     if request.client:
         return request.client.host or "unknown"
@@ -72,6 +95,8 @@ def _check_rate_limit(request: Request) -> None:
     key = _client_key(request)
     now = time.time()
     window = 60.0
+    if len(_rate_buckets) > _MAX_RATE_BUCKETS:
+        _rate_buckets.clear()
     bucket = _rate_buckets[key]
     while bucket and now - bucket[0] > window:
         bucket.popleft()
@@ -89,7 +114,15 @@ def _check_rate_limit(request: Request) -> None:
 @app.get("/api/branding")
 def get_branding():
     """Public product copy only — never includes secrets."""
-    return get_branding_public()
+    return get_branding_public(has_demo_docs=local_knowledge.get_status()["has_demo_docs"])
+
+
+@app.get("/api/logo")
+def get_logo():
+    logo = find_logo()
+    if not logo:
+        raise HTTPException(status_code=404, detail="لا يوجد شعار في مجلد Logo/.")
+    return FileResponse(logo, headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/api/status")
@@ -110,12 +143,16 @@ def get_system_status():
         label = "الإعداد غير مكتمل"
         desc = (
             "الأدلة مفهرسة، لكن مفتاح GEMINI_API_KEY غير مهيأ. "
-            "أضفه محليًا في ملف .env أو في متغيرات بيئة Vercel (خادم فقط)."
+            "أضفه في Vercel من Settings ثم Environment Variables، ثم أعد النشر."
         )
     else:
         overall = "incomplete"
         label = "قاعدة الأدلة فارغة"
-        desc = "لم يتم العثور على ملفات Markdown داخل مجلد Knowledge/."
+        desc = "لم يتم العثور على ملفات .md أو .txt داخل مجلد Knowledge/."
+
+    unsupported = k_status["unsupported_files"]
+    if unsupported:
+        desc += f" ملفات لن تُقرأ (حوّلها إلى .md أو .txt): {', '.join(unsupported[:5])}."
 
     return {
         "status": overall,
@@ -127,6 +164,7 @@ def get_system_status():
         "last_indexed": k_status["last_indexed"],
         "has_gemini_key": has_gemini,
         "readonly_deploy": IS_SERVERLESS,
+        "unsupported_files": unsupported,
         # Never return key values or ADMIN secrets
     }
 
@@ -179,7 +217,7 @@ async def handle_chat(req: ChatRequest, request: Request):
                 f"({local_knowledge.get_status()['documents_count']} أدلة).\n"
                 "• **الذكاء الاصطناعي:** مفتاح `GEMINI_API_KEY` غير مهيأ.\n\n"
                 "افتح زر «إضافة مفتاح الذكاء» واتبع التعليمات "
-                "(ملف `.env` محليًا، أو متغيرات بيئة Vercel للنشر)."
+                "(متغيرات البيئة في Vercel، أو ملف `.env` عند التشغيل المحلي)."
             )
             yield f"data: {json.dumps({'text': msg}, ensure_ascii=False)}\n\n"
             yield f"data: {json.dumps({'done': True, 'citations': [], 'answer_map': None}, ensure_ascii=False)}\n\n"
@@ -190,17 +228,17 @@ async def handle_chat(req: ChatRequest, request: Request):
     if not has_evidence:
         async def no_evidence_stream():
             msg = (
-                "بناءً على الأدلة واللوائح المعتمدة المتاحة حالياً، "
+                "بناءً على المصادر المتاحة حاليًا، "
                 "لا تتوفر تفاصيل كافية للإجابة عن هذا السؤال بدقة.\n\n"
                 "💡 *يمكنك صياغة السؤال بكلمات مفتاحية أخرى، "
-                "أو استعراض قائمة الأدلة المعتمدة من زر «المصادر».*"
+                "أو استعراض قائمة الأدلة من زر «المصادر».*"
             )
             yield f"data: {json.dumps({'text': msg}, ensure_ascii=False)}\n\n"
             yield f"data: {json.dumps({'done': True, 'citations': [], 'answer_map': None}, ensure_ascii=False)}\n\n"
 
         return StreamingResponse(no_evidence_stream(), media_type="text/event-stream")
 
-    history_dicts = [{"role": m.role, "content": m.content} for m in req.history or []]
+    history_dicts = [{"role": m.role, "content": m.content} for m in req.history]
     return StreamingResponse(
         gemini_client.stream_chat_completion(
             query=query,

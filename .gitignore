@@ -1,0 +1,61 @@
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+*.pem
+credentials.json
+service-account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node (if present)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
+
+# Local-only experiment / conversion tools (not part of the published app)
+_local_devtools/
+
+# Generated at runtime from Knowledge/ — never commit (a stale copy would hide new sources)
+data/
+*.log
+
+# Private backups / exports — never publish private guides
+Knowledge/_private/
+*.bak
+*.backup
+
+# Build / temp
+dist/
+build/
+.tmp/
+.temp/
+.vercel/
+
+# Internal experiment logs — never publish
+daleel-project-log.md
+**/daleel-project-log.md
+
+# Agent / IDE local stores
+.cursor/
+agent-transcripts/

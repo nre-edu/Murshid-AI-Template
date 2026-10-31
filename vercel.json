@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "python scripts/build_knowledge_index.py",
-  "installCommand": "pip install -r requirements.txt"
+  "functions": {
+    "app/main.py": {
+      "maxDuration": 60
+    }
+  }
 }

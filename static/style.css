@@ -1399,3 +1399,38 @@ textarea:focus-visible {
   box-shadow: none;
   outline: none !important;
 }
+
+/* Contact options shown when the sources hold no answer */
+.contact-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed #E2E8F0;
+}
+.contact-card p {
+  flex-basis: 100%;
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-charcoal-dark);
+}
+.contact-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.contact-whatsapp {
+  background: #128C4B;
+  color: #FFFFFF;
+}
+.contact-email {
+  background: #FFFFFF;
+  border: 1.5px solid var(--color-peach-border);
+  color: var(--color-charcoal-dark);
+}

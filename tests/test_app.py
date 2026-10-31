@@ -132,6 +132,48 @@ def test_logo_from_folder(client, tmp_path, monkeypatch):
     assert response.headers["content-type"] == "image/png"
 
 
+def test_contact_is_cleaned_and_hidden_when_empty(tmp_path, monkeypatch):
+    path = tmp_path / "branding.json"
+    path.write_text(json.dumps({"contact": {"whatsapp": "", "email": ""}}), encoding="utf-8")
+    monkeypatch.setattr(branding, "BRANDING_PATH", path)
+    branding.load_branding.cache_clear()
+    assert branding.get_branding_public()["contact"] is None
+
+    path.write_text(
+        json.dumps({"contact": {"whatsapp": "+966 50 000-0000", "email": "not-an-email"}}),
+        encoding="utf-8",
+    )
+    branding.load_branding.cache_clear()
+    contact = branding.get_branding_public()["contact"]
+    branding.load_branding.cache_clear()
+    assert contact["whatsapp"] == "966500000000"
+    assert contact["email"] == ""
+    assert contact["message"]
+
+
+def test_no_sources_found_offers_contact(client, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    events = sse_events(client.post("/api/chat", json={"query": "ما عاصمة فرنسا؟"}))
+    assert events[-1]["no_answer"] is True
+
+
+def test_model_refusal_offers_contact_and_drops_citations(client, monkeypatch):
+    class Reply:
+        status_code = 200
+        text = ""
+        encoding = None
+
+        def json(self):
+            refusal = "بناءً على المصادر المتاحة حاليًا، لا تتوفر تفاصيل كافية للإجابة عن هذا السؤال بدقة."
+            return {"candidates": [{"content": {"parts": [{"text": refusal}]}}]}
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(gc.requests, "post", lambda *a, **k: Reply())
+    events = sse_events(client.post("/api/chat", json={"query": "ما الفرق بين تعلم الآلة والتعلم العميق؟"}))
+    assert events[-1]["no_answer"] is True
+    assert events[-1]["citations"] == []
+
+
 def test_chat_answer_uses_header_key_and_not_url(client, monkeypatch):
     seen = {}
 
@@ -154,6 +196,7 @@ def test_chat_answer_uses_header_key_and_not_url(client, monkeypatch):
     assert seen["headers"]["x-goog-api-key"] == "test-key"
     assert "الإجابة" in "".join(e.get("text", "") for e in events)
     assert events[-1]["done"] and events[-1]["citations"]
+    assert events[-1]["no_answer"] is False
 
 
 def test_bad_key_is_not_retried_on_other_models(client, monkeypatch):

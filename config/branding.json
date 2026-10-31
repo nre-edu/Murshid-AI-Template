@@ -16,8 +16,13 @@
   "input_placeholder": "اكتب سؤالك حول محتوى الأدلة المعتمدة... (Enter للإرسال)",
   "suggestions_title": "اقتراحات لبدء المحادثة:",
   "suggested_questions": [],
+  "contact": {
+    "message": "لم أجد الإجابة في الأدلة المتاحة. يمكنك التواصل مع المسؤول:",
+    "whatsapp": "",
+    "email": ""
+  },
   "audience": "أي جمهور يحتاج إجابات من أدلة معتمدة",
-  "notes": "demo_questions تظهر فقط ما دام الملف التجريبي موجودًا. ضع أسئلتك في suggested_questions لتظهر دائمًا.",
+  "notes": "demo_questions تظهر فقط ما دام الملف التجريبي موجودًا. ضع أسئلتك في suggested_questions لتظهر دائمًا. بيانات contact تظهر كأزرار عند عدم وجود إجابة، وتبقى مخفية إذا كانت فارغة.",
   "demo_questions": [
     {
       "label": "ما الذكاء الاصطناعي؟",

@@ -234,7 +234,7 @@ async def handle_chat(req: ChatRequest, request: Request):
                 "أو استعراض قائمة الأدلة من زر «المصادر».*"
             )
             yield f"data: {json.dumps({'text': msg}, ensure_ascii=False)}\n\n"
-            yield f"data: {json.dumps({'done': True, 'citations': [], 'answer_map': None}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'done': True, 'citations': [], 'answer_map': None, 'no_answer': True}, ensure_ascii=False)}\n\n"
 
         return StreamingResponse(no_evidence_stream(), media_type="text/event-stream")
 

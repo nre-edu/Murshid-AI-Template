@@ -12,6 +12,8 @@ from app.branding import load_branding, load_custom_instructions
 from app.config import GEMINI_MODEL, get_gemini_api_key
 
 
+# Part of rule 6 in the system prompt; tells the page to offer the contact options
+NO_ANSWER_MARKER = "لا تتوفر تفاصيل كافية"
 # Must stay below maxDuration in vercel.json
 TOTAL_TIMEOUT_SECONDS = 50
 
@@ -252,6 +254,10 @@ class GeminiClient:
             yield f"data: {json.dumps({'error': 'فشل توليد إجابة مفهومة من النموذج.'}, ensure_ascii=False)}\n\n"
             return
 
+        no_answer = NO_ANSWER_MARKER in answer
+        if no_answer:
+            citations = []
+
         step = 48
         for i in range(0, len(answer), step):
             token = answer[i : i + step]
@@ -259,10 +265,10 @@ class GeminiClient:
 
         allowed: Set[str] = {str(c.get("chunk_id")) for c in citations if c.get("chunk_id")}
         answer_map = None
-        if raw_map is not None and _query_wants_map(query) and context_ok:
+        if raw_map is not None and _query_wants_map(query) and context_ok and not no_answer:
             answer_map = validate_answer_map(raw_map, allowed, citations, allow_demo=False)
 
-        yield f"data: {json.dumps({'done': True, 'citations': citations, 'answer_map': answer_map}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'done': True, 'citations': citations, 'answer_map': answer_map, 'no_answer': no_answer}, ensure_ascii=False)}\n\n"
 
 
 gemini_client = GeminiClient()

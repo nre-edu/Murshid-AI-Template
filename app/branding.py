@@ -14,6 +14,7 @@ INSTRUCTIONS_PATH = BASE_DIR / "config" / "instructions.md"
 LOGO_DIR = BASE_DIR / "Logo"
 LOGO_SUFFIXES = (".svg", ".png", ".webp", ".jpg", ".jpeg")
 MAX_INSTRUCTIONS_CHARS = 4000
+DEFAULT_CONTACT_MESSAGE = "لم أجد الإجابة في الأدلة المتاحة. يمكنك التواصل مع المسؤول:"
 
 _DEFAULTS: Dict[str, Any] = {
     "product_name": "مرشد",
@@ -34,6 +35,7 @@ _DEFAULTS: Dict[str, Any] = {
     "suggestions_title": "اقتراحات لبدء المحادثة:",
     "suggested_questions": [],
     "demo_questions": [],
+    "contact": {},
     "audience": "",
     "notes": "",
 }
@@ -72,6 +74,20 @@ def _clean_questions(questions: Any) -> List[Dict[str, str]]:
     return cleaned
 
 
+def _clean_contact(contact: Any) -> Optional[Dict[str, str]]:
+    """Contact options shown when no answer is found; None hides them."""
+    if not isinstance(contact, dict):
+        return None
+    whatsapp = re.sub(r"\D", "", str(contact.get("whatsapp") or "")).lstrip("0")
+    email = str(contact.get("email") or "").strip()
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        email = ""
+    if not whatsapp and not email:
+        return None
+    message = str(contact.get("message") or "").strip() or DEFAULT_CONTACT_MESSAGE
+    return {"message": message, "whatsapp": whatsapp, "email": email}
+
+
 @lru_cache(maxsize=1)
 def load_branding() -> Dict[str, Any]:
     data = dict(_DEFAULTS)
@@ -84,6 +100,7 @@ def load_branding() -> Dict[str, Any]:
             pass
     data["suggested_questions"] = _clean_questions(data.get("suggested_questions"))
     data["demo_questions"] = _clean_questions(data.get("demo_questions"))
+    data["contact"] = _clean_contact(data.get("contact"))
     data["product_name"] = str(data.get("product_name") or "مرشد").strip() or "مرشد"
     data["variant_name"] = (
         str(data.get("variant_name") or data["product_name"]).strip()
@@ -119,6 +136,7 @@ def get_branding_public(has_demo_docs: bool = False) -> Dict[str, Any]:
         "suggestions_title": b["suggestions_title"],
         "suggested_questions": questions,
         "show_demo_map": has_demo_docs,
+        "contact": b["contact"],
         # The size changes with the image, so a new logo is not hidden by browser cache
         "logo_url": f"/api/logo?v={logo.stat().st_size}" if logo else None,
         "audience": b.get("audience") or "",

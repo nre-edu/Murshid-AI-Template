@@ -744,6 +744,38 @@ document.addEventListener('DOMContentLoaded', () => {
     keepQuestionInView();
   }
 
+  function appendContactCard(bubbleElement, question) {
+    const contact = state.branding && state.branding.contact;
+    if (!contact) return;
+
+    const card = document.createElement('div');
+    card.className = 'contact-card';
+
+    const message = document.createElement('p');
+    message.textContent = contact.message;
+    card.appendChild(message);
+
+    const addLink = (label, href, className) => {
+      const link = document.createElement('a');
+      link.className = `contact-link ${className}`;
+      link.href = href;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = label;
+      card.appendChild(link);
+    };
+
+    const text = `لدي سؤال لم أجد إجابته في الموقع:\n${question}`;
+    if (contact.whatsapp) {
+      addLink('واتساب', `https://wa.me/${contact.whatsapp}?text=${encodeURIComponent(text)}`, 'contact-whatsapp');
+    }
+    if (contact.email) {
+      const subject = encodeURIComponent('سؤال من الموقع');
+      addLink('البريد الإلكتروني', `mailto:${contact.email}?subject=${subject}&body=${encodeURIComponent(text)}`, 'contact-email');
+    }
+    bubbleElement.appendChild(card);
+  }
+
   function addMessageFooter(bubbleElement, rawText) {
     const footer = document.createElement('div');
     footer.className = 'message-footer';
@@ -836,6 +868,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let accumulatedText = '';
     let receivedCitations = [];
     let receivedAnswerMap = null;
+    let noAnswer = false;
     let streamFailed = false;
 
     state.abortController = new AbortController();
@@ -887,6 +920,7 @@ document.addEventListener('DOMContentLoaded', () => {
               } else if (data.done) {
                 receivedCitations = data.citations || [];
                 receivedAnswerMap = data.answer_map || null;
+                noAnswer = Boolean(data.no_answer);
               }
             } catch (err) {}
           }
@@ -906,6 +940,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appendCitationsCards(assistantBubble, receivedCitations);
         const mapEl = renderAnswerMapCard(receivedAnswerMap, receivedCitations);
         if (mapEl) assistantBubble.appendChild(mapEl);
+        if (noAnswer) appendContactCard(assistantBubble, query);
         addMessageFooter(assistantBubble, accumulatedText);
       }
 
